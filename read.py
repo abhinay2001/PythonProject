@@ -6,7 +6,8 @@ def read_table(db_details, table_name, limit=0):
                                db_host=SOURCE_DB['DB_HOST'],
                                db_name=SOURCE_DB['DB_NAME'],
                                db_user=SOURCE_DB['DB_USER'],
-                               db_pass=SOURCE_DB['DB_PASS'],)
+                               db_pass=SOURCE_DB['DB_PASS'],
+                                db_port=SOURCE_DB.get('DB_PORT'))
     cursor = connection.cursor()
     if limit == 0:
         query = f"SELECT * FROM {table_name}"

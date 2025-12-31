@@ -1,4 +1,5 @@
-
+import config
+print("CONFIG FILE USED:", config.__file__)
 import psycopg2
 
 import pandas as pd
@@ -10,6 +11,11 @@ def load_db_details(env):
     return DB_DETAILS[env]
 
 def get_mysql_connection(db_host, db_user, db_pass,db_name, db_port=3306):
+    print("MYSQL connect using:",
+          db_host, db_port, db_user, db_name,
+          "pass_len=", len(db_pass),
+          "pass_repr=", repr(db_pass))
+
     try:
         return mc.connect(host=db_host,
                           user=db_user,
