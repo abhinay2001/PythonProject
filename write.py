@@ -3,7 +3,12 @@ from util import get_connection
 def build_insert_query(table_name, column_names):
     cols = ", ".join(column_names)
     placeholders = ", ".join(["%s"] * len(column_names))
-    return f"INSERT INTO {table_name} ({cols}) VALUES ({placeholders})"
+    return f"""
+        INSERT INTO {table_name} ({cols})
+        VALUES ({placeholders})
+        ON CONFLICT (department_id)
+        DO NOTHING
+    """
 
 
 def insert_data(connection, cursor, query, data, batch_size=100):
