@@ -1,5 +1,9 @@
+from env_loader import load_dotenv
+load_dotenv()
+
 import config
-print("CONFIG FILE USED:", config.__file__)
+
+print("CONFIG FILE USED:", getattr(config, "__file__", "unknown"))
 import psycopg2
 
 import pandas as pd
