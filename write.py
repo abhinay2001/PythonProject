@@ -1,4 +1,7 @@
+from logger import get_logger
 from util import get_connection
+
+log = get_logger(__name__)
 
 PK_MAP = {
     "departments": "department_id",
@@ -27,17 +30,23 @@ def build_insert_query(table_name, column_names):
 
 
 def insert_data(connection, cursor, query, data, batch_size=100):
+    total_inserted = 0
     batch = []
+
     for rec in data:
         batch.append(rec)
         if len(batch) >= batch_size:
             cursor.executemany(query, batch)
+            total_inserted += cursor.rowcount
             connection.commit()
             batch = []
 
     if batch:
         cursor.executemany(query, batch)
+        total_inserted += cursor.rowcount
         connection.commit()
+
+    return total_inserted
 
 
 def load_table(db_details, data, column_names, table_name):
@@ -54,10 +63,14 @@ def load_table(db_details, data, column_names, table_name):
 
     cursor = connection.cursor()
     query = build_insert_query(table_name, column_names)
-    print(query)
 
-    # if table is empty, just skip quietly
-    if data:
-        insert_data(connection, cursor, query, data, batch_size=100)
+    if not data:
+        log.info("No rows to load for %s (skipping)", table_name)
+        connection.close()
+        return 0
+
+    inserted = insert_data(connection, cursor, query, data, batch_size=100)
+    log.info("Inserted %s rows into %s", inserted, table_name)
 
     connection.close()
+    return inserted
