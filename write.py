@@ -70,15 +70,21 @@ def load_table(db_details, data, column_names, table_name):
             log.info("No rows to load for %s (skipping)", table_name)
             return 0
 
+        attempted = len(data)
         inserted = insert_data(connection, cursor, query, data, batch_size=100)
-        log.info("Inserted %s rows into %s", inserted, table_name)
+        skipped = attempted - inserted
+
+        log.info(
+            "Load complete for %s | attempted=%s inserted=%s skipped=%s",
+            table_name, attempted, inserted, skipped
+        )
 
         cursor.execute(
             """
-            INSERT INTO ingestion_metadata (table_name, run_at, rows_inserted)
-            VALUES (%s, %s, %s)
+            INSERT INTO ingestion_metadata (table_name, run_at, rows_inserted, rows_attempted, rows_skipped)
+            VALUES (%s, %s, %s, %s, %s)
             """,
-            (table_name, datetime.utcnow(), inserted),
+            (table_name, datetime.utcnow(), inserted, attempted, skipped),
         )
         connection.commit()
 
