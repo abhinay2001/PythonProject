@@ -4,6 +4,7 @@ from logger import get_logger
 from util import get_tables, load_db_details
 from read import read_table
 from write import load_table
+from dq import validate_counts
 
 log = get_logger(__name__)
 
@@ -30,8 +31,8 @@ def main():
 
         log.info("Columns for %s: %s", table_name, column_names)
         log.info("Loading data for %s", table_name)
-        load_table(db_details, data, column_names, table_name)
-
+        inserted = load_table(db_details, data, column_names, table_name)
+        validate_counts(db_details, table_name)
 
 if __name__ == "__main__":
     main()
