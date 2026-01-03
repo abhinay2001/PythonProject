@@ -1,36 +1,63 @@
 from util import get_connection
 
+PK_MAP = {
+    "departments": "department_id",
+    "customers": "customer_id",
+    "categories": "category_id",
+    "products": "product_id",
+    "orders": "order_id",
+    "order_items": "order_item_id",
+}
+
+
 def build_insert_query(table_name, column_names):
     cols = ", ".join(column_names)
     placeholders = ", ".join(["%s"] * len(column_names))
+
+    pk_col = PK_MAP.get(table_name)
+    if not pk_col:
+        raise ValueError(f"No primary key mapping defined for table: {table_name}")
+
     return f"""
         INSERT INTO {table_name} ({cols})
         VALUES ({placeholders})
-        ON CONFLICT (department_id)
+        ON CONFLICT ({pk_col})
         DO NOTHING
     """
 
 
 def insert_data(connection, cursor, query, data, batch_size=100):
-    for i in range(0, len(data), batch_size):
-        batch = data[i:i+batch_size]
+    batch = []
+    for rec in data:
+        batch.append(rec)
+        if len(batch) >= batch_size:
+            cursor.executemany(query, batch)
+            connection.commit()
+            batch = []
+
+    if batch:
         cursor.executemany(query, batch)
         connection.commit()
 
 
 def load_table(db_details, data, column_names, table_name):
-    TARGET_DB = db_details['TARGET_DB']
+    TARGET_DB = db_details["TARGET_DB"]
 
-    connection = get_connection(db_type=TARGET_DB['DB_TYPE'],
-                                db_host=TARGET_DB['DB_HOST'],
-                                db_name=TARGET_DB['DB_NAME'],
-                                db_user=TARGET_DB['DB_USER'],
-                                db_pass=TARGET_DB['DB_PASS'],
-                                db_port=TARGET_DB.get('DB_PORT')
-                                )
+    connection = get_connection(
+        db_type=TARGET_DB["DB_TYPE"],
+        db_host=TARGET_DB["DB_HOST"],
+        db_name=TARGET_DB["DB_NAME"],
+        db_user=TARGET_DB["DB_USER"],
+        db_pass=TARGET_DB["DB_PASS"],
+        db_port=TARGET_DB.get("DB_PORT"),
+    )
+
     cursor = connection.cursor()
     query = build_insert_query(table_name, column_names)
     print(query)
-    insert_data(connection, cursor, query, data, batch_size=100)
+
+    # if table is empty, just skip quietly
+    if data:
+        insert_data(connection, cursor, query, data, batch_size=100)
 
     connection.close()
