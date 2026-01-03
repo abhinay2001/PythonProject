@@ -1,5 +1,6 @@
 from logger import get_logger
 from util import get_connection
+from datetime import datetime
 
 log = get_logger(__name__)
 
@@ -62,15 +63,26 @@ def load_table(db_details, data, column_names, table_name):
     )
 
     cursor = connection.cursor()
-    query = build_insert_query(table_name, column_names)
+    try:
+        query = build_insert_query(table_name, column_names)
 
-    if not data:
-        log.info("No rows to load for %s (skipping)", table_name)
+        if not data:
+            log.info("No rows to load for %s (skipping)", table_name)
+            return 0
+
+        inserted = insert_data(connection, cursor, query, data, batch_size=100)
+        log.info("Inserted %s rows into %s", inserted, table_name)
+
+        cursor.execute(
+            """
+            INSERT INTO ingestion_metadata (table_name, run_at, rows_inserted)
+            VALUES (%s, %s, %s)
+            """,
+            (table_name, datetime.utcnow(), inserted),
+        )
+        connection.commit()
+
+        return inserted
+    finally:
+        cursor.close()
         connection.close()
-        return 0
-
-    inserted = insert_data(connection, cursor, query, data, batch_size=100)
-    log.info("Inserted %s rows into %s", inserted, table_name)
-
-    connection.close()
-    return inserted
